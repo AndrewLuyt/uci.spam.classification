@@ -44,7 +44,7 @@ createModel <- function(data, labels, verbose=TRUE) {
 
 
   # library(doMC); registerDoMC(cores=3)
-  library(doParallel);cl <- makePSOCKcluster(14);registerDoParallel(cl)
+  library(doParallel);cl <- makePSOCKcluster(3);registerDoParallel(cl)
   if(verbose) print("Finding near-zero variance predictors...")
   nzv2 <- caret::nearZeroVar(train.dfm, freqCut = 200, foreach=TRUE, allowParallel = TRUE)
   start.time <- Sys.time()
