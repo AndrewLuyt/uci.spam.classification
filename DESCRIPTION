@@ -1,6 +1,6 @@
 Package: uci.spam.classification
-Title: Create a toy spam classifier using a randomforest NLP model
-Version: 0.0.0.9000
+Title: Create a Toy Spam Classifier Using NLP and LDA
+Version: 0.1
 Authors@R: 
     person("Andrew", "Luyt", , "andrew.luyt@gmail.com", role = c("aut", "cre"))
 Description: Using a supplied UCI spam dataset, creates a spam- or ham-classifying

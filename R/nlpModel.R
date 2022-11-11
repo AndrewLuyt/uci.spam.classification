@@ -11,9 +11,7 @@
 #' @importFrom rlang .data
 #'
 nlpModel <- function(data, labels, verbose=TRUE) {
-  # https://www.r-bloggers.com/2019/08/no-visible-binding-for-global-variable/
-  doc_id <- NULL # Remove R CMD CHECK note. See URL above.
-  set.seed(32984) # reproducibility
+  set.seed(1712) # reproducibility
   indices <- caret::createDataPartition(labels, times = 1, p = 0.7, list = FALSE)
   train <- data[indices, ]
   test <- data[-indices, ]
@@ -26,32 +24,34 @@ nlpModel <- function(data, labels, verbose=TRUE) {
 
     quanteda::dfm(tolower = FALSE) %>%
     quanteda::convert(to = "data.frame") %>%
-    cbind(Label = train$label, .data) %>%
-    dplyr::select(-doc_id)
+    dplyr::select(-"doc_id")
+  train.dfm <- cbind(Label = train$label, train.dfm)
 
   # some tokens will create illegal/problematic column names for a data frame
   colnames(train.dfm) <- make.names(colnames(train.dfm))
 
-  set.seed(48743)
+  set.seed(1712)
 
   # 3-repeated 10-fold cross-validation
   # cv.folds <- caret::createMultiFolds(y= train$label, k = 10, times = 3)
   # cv.ctrl <- caret::trainControl(method = "repeatedcv", number = 10, savePredictions = 'all',
   #                                repeats = 3, index = cv.folds, allowParallel = TRUE)
+  # 10-fold cross-validation
+  # cv.folds @<- caret::createFolds(y=train$label, k=10)
+  cv.ctrl <- caret::trainControl(method = "cv", number = 10, allowParallel = TRUE)
   # set up bootstrap resampling
-  cv.ctrl <- caret::trainControl(method = "boot632", number = 7, allowParallel = TRUE)
+  # cv.ctrl <- caret::trainControl(method = "boot", number = 7, allowParallel = TRUE)
 
-  cl <- parallel::makePSOCKcluster(3)
-  doParallel::registerDoParallel(cl)
+  doParallel::registerDoParallel(cl=3, cores=3)
 
-    if(verbose) print("Finding near-zero variance predictors...")
+  if(verbose) print("Finding near-zero variance predictors...")
   nzv2 <- caret::nearZeroVar(train.dfm, freqCut = 200, foreach=TRUE, allowParallel = TRUE)
 
   if (verbose) start.time <- Sys.time()
-  if(verbose) print("Training model...")
+  if (verbose) print("Training model...")
   # m <- caret::train(Label ~ ., data = train.dfm[, -nzv2], trControl=cv.ctrl, method='rpart', tuneLength=7);m
-  m <- caret::train(train.dfm[, -c(1, nzv2)], train.dfm[,1], trControl=cv.ctrl, method='lda')
-  parallel::stopCluster(cl)
+  m <- caret::train(Label ~ ., data = train.dfm[, -nzv2], trControl=cv.ctrl, method='lda')
+  doParallel::stopImplicitCluster()
 
   if (verbose) {
     total.time <- Sys.time() - start.time
